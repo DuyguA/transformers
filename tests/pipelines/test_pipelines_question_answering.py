@@ -405,6 +405,55 @@ between them. It's straightforward to train your models with one before loading 
         )
 
     @slow
+    @require_torch
+    def test_align_word_topk_issue_with_bpe(self):
+        # https://github.com/huggingface/transformers/issues/26286
+        qa_pipeline = pipeline(
+            "question-answering",
+            model="deepset/tinyroberta-squad2"
+        )
+        # Here nothing interesting happens, the issue is not observed
+        question = "When was Rachel born?"
+        context = "Rachel was born in 1990."
+        ideal_answers = [
+            {'score': 0.96, 'start': 19, 'end': 23, 'answer': '1990'},
+            {'score': 0.010, 'start': 19, 'end': 24, 'answer': '1990.'},
+            {'score': 0.003, 'start': 16, 'end': 23, 'answer': 'in 1990'}
+        ]
+        outputs = qa_pipeline(question=question, context=context, align_to_words=True, top_k=3)
+        self.assertEqual(nested_simplify(outputs), ideal_answers)
+
+        outputs = qa_pipeline(question=question, context=context, align_to_words=False, top_k=3)
+        self.assertEqual(nested_simplify(outputs), ideal_answers)
+
+        # Here the issue is observed and should be fixed
+        question = "Who is the chancellor of Germany?"
+        context = "Angela Merkel was the chancellor of Germany."
+        outputs = qa_pipeline(question=question, context=context, align_to_words=True, top_k=10)
+        self.assertEqual(len(outputs), 10)
+
+        outputs = qa_pipeline(question=question, context=context, align_to_words=False, top_k=10)
+        self.assertEqual(len(outputs), 10)
+
+    @slow
+    @require_torch
+    def test_align_word_topk_issue_with_wpiece(self):
+        # https://github.com/huggingface/transformers/issues/26286
+        qa_pipeline = pipeline(
+            "question-answering",
+            model="sshleifer/tiny-distilbert-base-cased-distilled-squad"
+        )
+        question = "Who is the chancellor of Germany?"
+        context = "Angela Merkel was the chancellor of Germany."
+        outputs = qa_pipeline(question=question, context=context, align_to_words=False, top_k=10)
+        self.assertEqual(len(outputs), 10)
+
+        outputs = qa_pipeline(question=question, context=context, align_to_words=True, top_k=10)
+        self.assertEqual(len(outputs), 10)
+
+
+
+    @slow
     @require_tf
     def test_large_model_tf(self):
         question_answerer = pipeline("question-answering", framework="tf")
