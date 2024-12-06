@@ -430,27 +430,27 @@ between them. It's straightforward to train your models with one before loading 
         question = "Who is the chancellor of Germany?"
         context = "Angela Merkel was the chancellor of Germany."
 
-        aligned_answers = [
-          {'score': 0.996, 'start': 0, 'end': 13, 'answer': 'Angela Merkel'},
-          {'score': 0.001, 'start': 0, 'end': 44, 'answer': 'Angela Merkel was the chancellor of Germany.'},
-          {'score': 0.000, 'start': 0, 'end': 43, 'answer': 'Angela Merkel was the chancellor of Germany'},
-          {'score': 0.000, 'start': 7, 'end': 13, 'answer': 'Merkel'},
-          {'score': 0.000, 'start': 0, 'end': 6, 'answer': 'Angela'},
-          {'score': 0.000, 'start': 0, 'end': 13, 'answer': 'Angela Merkel'}
-        ]
-        outputs = qa_pipeline(question=question, context=context, align_to_words=True, top_k=6)
-        self.assertEqual(nested_simplify(outputs), aligned_answers)
-
         unaligned_answers = [
           {'score': 0.996, 'start': 0, 'end': 13, 'answer': 'Angela Merkel'},
           {'score': 0.001, 'start': 0, 'end': 44, 'answer': 'Angela Merkel was the chancellor of Germany.'},
-          {'score': 0.000, 'start': 0, 'end': 43, 'answer': 'Angela Merkel was the chancellor of Germany'},
-          {'score': 0.000, 'start': 7, 'end': 13, 'answer': 'Merkel'},
-          {'score': 0.000, 'start': 0, 'end': 6, 'answer': 'Angela'},
-          {'score': 0.000, 'start': 3, 'end': 13, 'answer': 'ela Merkel'}
+          {'score': 0.0, 'start': 0, 'end': 43, 'answer': 'Angela Merkel was the chancellor of Germany'},
+          {'score': 0.0, 'start': 7, 'end': 13, 'answer': 'Merkel'},
+          {'score': 0.0, 'start': 0, 'end': 6, 'answer': 'Angela'},
+          {'score': 0.0, 'start': 3, 'end': 13, 'answer': 'ela Merkel'}
         ]
         outputs = qa_pipeline(question=question, context=context, align_to_words=False, top_k=6)
         self.assertEqual(nested_simplify(outputs), unaligned_answers)
+
+        aligned_answers = [
+          {'score': 0.996, 'start': 0, 'end': 13, 'answer': 'Angela Merkel'},
+          {'score': 0.001, 'start': 0, 'end': 44, 'answer': 'Angela Merkel was the chancellor of Germany.'},
+          {'score': 0.0, 'start': 0, 'end': 43, 'answer': 'Angela Merkel was the chancellor of Germany'},
+          {'score': 0.0, 'start': 7, 'end': 13, 'answer': 'Merkel'},
+          {'score': 0.0, 'start': 0, 'end': 6, 'answer': 'Angela'},
+          {'score': 0.0, 'start': 0, 'end': 13, 'answer': 'Angela Merkel'}
+        ]
+        outputs = qa_pipeline(question=question, context=context, align_to_words=True, top_k=6)
+        self.assertEqual(nested_simplify(outputs), aligned_answers)
 
     @slow
     @require_torch
@@ -458,15 +458,15 @@ between them. It's straightforward to train your models with one before loading 
         # https://github.com/huggingface/transformers/issues/26286
         qa_pipeline = pipeline(
             "question-answering",
-            model="sshleifer/tiny-distilbert-base-cased-distilled-squad"
+            model="google-bert/bert-large-uncased-whole-word-masking-finetuned-squad"
         )
         # Here nothing interesting happens, the issue is not observed
         question = "When was Rachel born?"
         context = "Rachel was born in 1990."
         ideal_answers = [
-            {'score': 0.021, 'start': 0, 'end': 24, 'answer': 'Rachel was born in 1990.'},
-            {'score': 0.021, 'start': 23, 'end': 24, 'answer': '.'},
-            {'score': 0.021, 'start': 0, 'end': 6, 'answer': 'Rachel'},
+          {'score': 0.988, 'start': 19, 'end': 23, 'answer': '1990'},
+          {'score': 0.008, 'start': 19, 'end': 24, 'answer': '1990.'},
+          {'score': 0.003, 'start': 16, 'end': 23, 'answer': 'in 1990'}
         ]
         outputs = qa_pipeline(question=question, context=context, align_to_words=True, top_k=3)
         self.assertEqual(nested_simplify(outputs), ideal_answers)
@@ -474,13 +474,35 @@ between them. It's straightforward to train your models with one before loading 
         outputs = qa_pipeline(question=question, context=context, align_to_words=False, top_k=3)
         self.assertEqual(nested_simplify(outputs), ideal_answers)
 
+        ### Now comes the issue related inputs
+
         question = "Who is the chancellor of Germany?"
         context = "Angela Merkel was the chancellor of Germany."
-        outputs = qa_pipeline(question=question, context=context, align_to_words=False, top_k=10)
-        self.assertEqual(len(outputs), 10)
 
-        outputs = qa_pipeline(question=question, context=context, align_to_words=True, top_k=10)
-        self.assertEqual(len(outputs), 10)
+        unaligned_answers = [
+          {'score': 0.993, 'start': 0, 'end': 13, 'answer': 'Angela Merkel'},
+          {'score': 0.004, 'start': 0, 'end': 43, 'answer': 'Angela Merkel was the chancellor of Germany'},
+          {'score': 0.001, 'start': 7, 'end': 13, 'answer': 'Merkel'},
+          {'score': 0.001, 'start': 0, 'end': 6, 'answer': 'Angela'},
+          {'score': 0.0, 'start': 0, 'end': 44, 'answer': 'Angela Merkel was the chancellor of Germany.'},
+          {'score': 0.0, 'start': 0, 'end': 32, 'answer': 'Angela Merkel was the chancellor'},
+          {'score': 0.0, 'start': 0, 'end': 10, 'answer': 'Angela Mer'}
+        ]
+        outputs = qa_pipeline(question=question, context=context, align_to_words=False, top_k=7)
+        self.assertEqual(nested_simplify(outputs), unaligned_answers)
+
+        aligned_answers = [
+          {'score': 0.993, 'start': 0, 'end': 13, 'answer': 'Angela Merkel'},
+          {'score': 0.004, 'start': 0, 'end': 43, 'answer': 'Angela Merkel was the chancellor of Germany'},
+          {'score': 0.001, 'start': 7, 'end': 13, 'answer': 'Merkel'},
+          {'score': 0.001, 'start': 0, 'end': 6, 'answer': 'Angela'},
+          {'score': 0.0, 'start': 0, 'end': 44, 'answer': 'Angela Merkel was the chancellor of Germany.'},
+          {'score': 0.0, 'start': 0, 'end': 32, 'answer': 'Angela Merkel was the chancellor'},
+          {'score': 0.0, 'start': 0, 'end': 13, 'answer': 'Angela Merkel'}
+        ]
+        outputs = qa_pipeline(question=question, context=context, align_to_words=True, top_k=7)
+        print(nested_simplify(outputs))
+        self.assertEqual(nested_simplify(outputs), aligned_answers)
 
 
 
