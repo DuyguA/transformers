@@ -429,8 +429,17 @@ between them. It's straightforward to train your models with one before loading 
         # Here the issue is observed and should be fixed
         question = "Who is the chancellor of Germany?"
         context = "Angela Merkel was the chancellor of Germany."
-        outputs = qa_pipeline(question=question, context=context, align_to_words=True, top_k=10)
-        self.assertEqual(len(outputs), 10)
+
+        aligned_answers = [
+          {'score': 0.996, 'start': 0, 'end': 13, 'answer': 'Angela Merkel'},
+          {'score': 0.001, 'start': 0, 'end': 44, 'answer': 'Angela Merkel was the chancellor of Germany.'},
+          {'score': 0.000, 'start': 0, 'end': 43, 'answer': 'Angela Merkel was the chancellor of Germany'},
+          {'score': 0.000, 'start': 7, 'end': 13, 'answer': 'Merkel'},
+          {'score': 0.000, 'start': 0, 'end': 6, 'answer': 'Angela'},
+          {'score': 0.000, 'start': 0, 'end': 13, 'answer': 'Angela Merkel'}
+        ]
+        outputs = qa_pipeline(question=question, context=context, align_to_words=True, top_k=6)
+        self.assertEqual(nested_simplify(outputs), aligned_answers)
 
         unaligned_answers = [
           {'score': 0.996, 'start': 0, 'end': 13, 'answer': 'Angela Merkel'},
